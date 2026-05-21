@@ -55,7 +55,7 @@ JSON attendu :
       },
       body: JSON.stringify({
         model:  "claude-sonnet-4-5",
-        max_tokens: 4000,
+        max_tokens: 8000,
         system: MASTER_PROMPT,
         messages: [{ role: "user", content: userPrompt }],
       }),
