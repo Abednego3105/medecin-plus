@@ -40,142 +40,130 @@ function generateWordHTML(data, formatId) {
   const format = FORMATS.find(f => f.id === formatId);
   const isEbook = formatId === "ebook";
 
+  // Word-compatible box using table
+  const box = (bgColor, borderColor, titleHtml, contentHtml) => `
+<table width="100%" cellpadding="10" cellspacing="0" style="margin:12pt 0;border-collapse:collapse;">
+  <tr><td style="background:${bgColor};border-left:4px solid ${borderColor};padding:10pt 14pt;">
+    ${titleHtml ? `<p style="font-weight:bold;color:${borderColor};margin:0 0 8pt;">${titleHtml}</p>` : ""}
+    ${contentHtml}
+  </td></tr>
+</table>`;
+
+  const pageBreak = `<br clear="all" style="page-break-before:always;" />`;
+
   let bodyHTML = "";
 
   if (isEbook && data.chapitres) {
     data.chapitres.forEach((ch, i) => {
       bodyHTML += `
-<div style="page-break-before:${i > 0 ? "always" : "auto"};">
-  <h2 style="font-size:16pt;color:#0ea5a0;border-bottom:2px solid #0ea5a0;padding-bottom:6pt;margin-top:0;">
-    Chapitre ${ch.numero} — ${ch.titre}
-  </h2>
-  <p>${(ch.contenu || "").replace(/\n/g, "</p><p>")}</p>
+${i > 0 ? pageBreak : ""}
+<h2 style="font-size:15pt;color:#0ea5a0;border-bottom:2px solid #0ea5a0;padding-bottom:4pt;">Chapitre ${ch.numero} — ${ch.titre}</h2>
+<p>${(ch.contenu || "").replace(/\n/g, "</p><p>")}</p>
 
-  ${ch.points_cles?.length ? `
-  <div style="background:#f0fdfa;padding:12pt;border-left:4px solid #0ea5a0;margin:14pt 0;">
-    <p style="font-weight:bold;color:#0ea5a0;margin:0 0 8pt;">Points clés</p>
-    ${ch.points_cles.map(p => `<p style="margin:3pt 0;">✓ &nbsp;${p}</p>`).join("")}
-  </div>` : ""}
+${ch.points_cles?.length ? box("#f0fdfa","#0ea5a0","Points clés",ch.points_cles.map(p=>`<p style="margin:3pt 0;">&#10003; &nbsp;${p}</p>`).join("")) : ""}
 
-  ${ch.emplacement_image ? `
-  <div style="border:2px dashed #0ea5a0;padding:14pt;text-align:center;margin:14pt 0;background:#f0fdfa;color:#0ea5a0;font-size:11pt;">
-    🖼 ${ch.emplacement_image}
-  </div>` : ""}
+${ch.emplacement_image ? box("#f0fdfa","#0ea5a0","","<p style='text-align:center;color:#0ea5a0;'>&#128444; " + ch.emplacement_image + "</p>") : ""}
 
-  ${ch.quiz?.length ? `
-  <div style="background:#fffbeb;border:1px solid #f5c842;padding:14pt;margin:16pt 0;border-radius:6pt;">
-    <p style="font-weight:bold;color:#92400e;font-size:13pt;margin:0 0 12pt;">🧠 Quiz — Chapitre ${ch.numero}</p>
-    ${ch.quiz.map((q, qi) => `
-    <div style="margin-bottom:14pt;">
-      <p style="font-weight:bold;margin:0 0 6pt;">${qi + 1}. ${q.question}</p>
-      ${q.reponses.map(r => `
-      <p style="margin:3pt 0 3pt 12pt;">
-        <span style="display:inline-block;width:14pt;height:14pt;border:2px solid #888;margin-right:6pt;vertical-align:middle;"></span>${r}
-      </p>`).join("")}
-      <p style="font-size:10pt;color:#666;font-style:italic;margin:6pt 0 0 12pt;">✓ Bonne réponse : ${q.bonne_reponse} — ${q.explication}</p>
-    </div>`).join("")}
-  </div>` : ""}
+${ch.quiz?.length ? box("#fffbeb","#f5c842",`&#129504; Quiz — Chapitre ${ch.numero}`,
+  ch.quiz.map((q,qi)=>`
+<p style="font-weight:bold;margin:8pt 0 4pt;">${qi+1}. ${q.question}</p>
+${q.reponses.map(r=>`<p style="margin:2pt 0 2pt 12pt;">&#9633; &nbsp;${r}</p>`).join("")}
+<p style="font-size:10pt;color:#666;font-style:italic;margin:4pt 0 8pt 12pt;">&#10003; Bonne réponse : ${q.bonne_reponse} — ${q.explication}</p>
+`).join("<hr style='border:none;border-top:1px solid #eee;margin:6pt 0;'/>")
+) : ""}
 
-  ${ch.exercice_workbook ? `
-  <div style="background:#f0f4ff;border:1px solid #6366f1;padding:14pt;margin:16pt 0;border-radius:6pt;">
-    <p style="font-weight:bold;color:#4338ca;font-size:13pt;margin:0 0 8pt;">✍️ Workbook — ${ch.exercice_workbook.titre || "Exercice pratique"}</p>
-    <p style="color:#333;margin:0 0 10pt;">${ch.exercice_workbook.consigne}</p>
-    ${(ch.exercice_workbook.questions || []).map(q => `
-    <div style="margin-bottom:12pt;">
-      <p style="font-weight:bold;margin:0 0 6pt;">${q}</p>
-      <div style="border-bottom:1px solid #ccc;margin-bottom:4pt;height:20pt;"></div>
-      <div style="border-bottom:1px solid #ccc;margin-bottom:4pt;height:20pt;"></div>
-      <div style="border-bottom:1px solid #ccc;height:20pt;"></div>
-    </div>`).join("")}
-  </div>` : ""}
-</div>`;
+${ch.exercice_workbook ? box("#f0f4ff","#6366f1",`&#9997;&#65039; Workbook — ${ch.exercice_workbook.titre||"Exercice pratique"}`,
+  `<p style="margin:0 0 8pt;">${ch.exercice_workbook.consigne}</p>` +
+  (ch.exercice_workbook.questions||[]).map(q=>`
+<p style="font-weight:bold;margin:8pt 0 4pt;">${q}</p>
+<p style="border-bottom:1px solid #aaa;margin:4pt 0;height:16pt;">&nbsp;</p>
+<p style="border-bottom:1px solid #aaa;margin:4pt 0;height:16pt;">&nbsp;</p>
+<p style="border-bottom:1px solid #aaa;margin:4pt 0 10pt;height:16pt;">&nbsp;</p>
+`).join("")
+) : ""}
+`;
     });
   } else if (data.sections) {
     data.sections.forEach((s, i) => {
       bodyHTML += `
-<div style="page-break-before:${i > 0 ? "always" : "auto"};">
-  <h2 style="font-size:15pt;color:#0ea5a0;border-bottom:2px solid #0ea5a0;padding-bottom:5pt;">${s.titre || s.question || `Section ${i + 1}`}</h2>
-  ${s.contenu ? `<p>${s.contenu.replace(/\n/g, "</p><p>")}</p>` : ""}
-  ${s.reponse_courte ? `<p style="font-size:14pt;font-weight:bold;color:#0ea5a0;">→ ${s.reponse_courte}</p><p>${s.explication || ""}</p>` : ""}
-  ${s.points_cles?.length ? `<div style="background:#f0fdfa;padding:10pt;border-left:4px solid #0ea5a0;margin:10pt 0;">${s.points_cles.map(p => `<p style="margin:3pt 0;">✓ ${p}</p>`).join("")}</div>` : ""}
-  ${s.emplacement_image ? `<div style="border:2px dashed #0ea5a0;padding:12pt;text-align:center;margin:12pt 0;background:#f0fdfa;color:#0ea5a0;font-size:11pt;">🖼 ${s.emplacement_image}</div>` : ""}
-</div>`;
+${i > 0 ? pageBreak : ""}
+<h2 style="font-size:14pt;color:#0ea5a0;border-bottom:2px solid #0ea5a0;padding-bottom:4pt;">${s.titre||s.question||`Section ${i+1}`}</h2>
+${s.contenu ? `<p>${s.contenu.replace(/\n/g,"</p><p>")}</p>` : ""}
+${s.reponse_courte ? `<p style="font-size:13pt;font-weight:bold;color:#0ea5a0;">&#8594; ${s.reponse_courte}</p><p>${s.explication||""}</p>` : ""}
+${s.points_cles?.length ? box("#f0fdfa","#0ea5a0","Points clés",s.points_cles.map(p=>`<p style="margin:3pt 0;">&#10003; ${p}</p>`).join("")) : ""}
+${s.emplacement_image ? box("#f0fdfa","#0ea5a0","","<p style='text-align:center;color:#0ea5a0;'>&#128444; "+s.emplacement_image+"</p>") : ""}
+`;
     });
   }
 
   const planHTML = data.plan_action?.length ? `
-<div style="page-break-before:always;">
-  <h2 style="font-size:16pt;color:#0ea5a0;">📅 Plan d'action — 30 jours</h2>
-  ${data.plan_action.map(s => `
-  <div style="background:#f8f9fa;border-left:4px solid #0ea5a0;padding:12pt;margin:10pt 0;">
-    <p style="font-weight:bold;color:#0ea5a0;margin:0 0 6pt;">Semaine ${s.semaine} — ${s.objectif}</p>
-    ${(s.actions || []).map(a => `<p style="margin:3pt 0;">□ &nbsp;${a}</p>`).join("")}
-  </div>`).join("")}
-</div>` : "";
+${pageBreak}
+<h2 style="font-size:15pt;color:#0ea5a0;">Plan d'action — 30 jours</h2>
+${data.plan_action.map(s => box("#f8f9fa","#0ea5a0",`Semaine ${s.semaine} — ${s.objectif}`,(s.actions||[]).map(a=>`<p style="margin:3pt 0;">&#9633; &nbsp;${a}</p>`).join(""))).join("")}` : "";
 
   const checklistHTML = data.checklist?.length ? `
-<div style="page-break-before:always;">
-  <h2 style="font-size:16pt;color:#0ea5a0;">✅ Checklist d'actions</h2>
-  ${data.checklist.map(item => `<p style="margin:8pt 0;">
-    <span style="display:inline-block;width:14pt;height:14pt;border:2px solid #0ea5a0;margin-right:8pt;vertical-align:middle;"></span>${item}
-  </p>`).join("")}
-</div>` : "";
+${pageBreak}
+<h2 style="font-size:15pt;color:#0ea5a0;">Checklist d'actions</h2>
+${data.checklist.map(item=>`<p style="margin:8pt 0;">&#9633; &nbsp;${item}</p>`).join("")}` : "";
 
   const imagesHTML = data.emplacements_images?.length ? `
-<div style="page-break-before:always;">
-  <h2 style="font-size:14pt;color:#f5c842;">🖼 Images à générer sur ChatGPT</h2>
-  ${data.emplacements_images.map(img => `<div style="border:2px dashed #f5c842;padding:12pt;text-align:center;margin:10pt 0;background:#fffbeb;color:#92400e;">${img}</div>`).join("")}
-</div>` : "";
+${pageBreak}
+<h2 style="font-size:14pt;color:#f5c842;">Images a generer sur ChatGPT</h2>
+${data.emplacements_images.map(img => `<table width="100%" cellpadding="10" cellspacing="0" style="margin:8pt 0;border:2px solid #f5c842;border-collapse:collapse;"><tr><td style="background:#fffbeb;color:#92400e;text-align:center;">${img}</td></tr></table>`).join("")}` : "";
 
   const metaHTML = data.meta ? `
-<div style="page-break-before:always;background:#f8f9fa;border:1px solid #ddd;padding:16pt;font-size:10pt;">
-  <p style="font-weight:bold;font-size:12pt;">FICHE COMMERCIALE — Ne pas publier</p><br>
-  <p><strong>Prix :</strong> ${data.meta.prix_suggere_fcfa?.toLocaleString()} FCFA / ${data.meta.prix_suggere_eur}€</p>
-  <p><strong>Public cible :</strong> ${data.meta.public_cible}</p>
-  <p><strong>Titre SEO :</strong> ${data.meta.titre_seo}</p>
-  <p><strong>Tags :</strong> ${data.meta.tags?.join(", ")}</p><br>
-  <p><strong>Description vente :</strong><br>${data.meta.description_vente}</p>
-</div>` : "";
+${pageBreak}
+<table width="100%" cellpadding="12" cellspacing="0" style="border:1px solid #ddd;border-collapse:collapse;font-size:10pt;">
+  <tr><td style="background:#f8f9fa;">
+    <p style="font-weight:bold;font-size:12pt;margin:0 0 10pt;">FICHE COMMERCIALE — Ne pas publier</p>
+    <p><strong>Prix :</strong> ${data.meta.prix_suggere_fcfa?.toLocaleString()} FCFA / ${data.meta.prix_suggere_eur}€</p>
+    <p><strong>Public cible :</strong> ${data.meta.public_cible}</p>
+    <p><strong>Titre SEO :</strong> ${data.meta.titre_seo}</p>
+    <p><strong>Tags :</strong> ${data.meta.tags?.join(", ")}</p>
+    <p><strong>Description vente :</strong><br>${data.meta.description_vente}</p>
+  </td></tr>
+</table>` : "";
 
-  return `<html><head><meta charset="UTF-8">
+  return `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word">
+<head><meta charset="UTF-8">
 <style>
-  body{font-family:Georgia,serif;font-size:12pt;color:#1a1a2e;line-height:1.8;margin:2.5cm;}
-  h1{font-size:26pt;color:#0ea5a0;text-align:center;}
-  h2{font-size:15pt;color:#0ea5a0;}
-  p{margin:6pt 0;}
-  .intro-box{background:#f0fdfa;padding:18pt;border-left:5px solid #0ea5a0;margin:18pt 0;}
-  .conclusion-box{background:#0ea5a0;color:white;padding:22pt;margin:22pt 0;}
+  body{font-family:Georgia,serif;font-size:12pt;color:#1a1a2e;line-height:1.8;margin:2cm;}
+  h1{font-size:24pt;color:#0ea5a0;text-align:center;}
+  h2{font-size:14pt;color:#0ea5a0;}
+  p{margin:5pt 0;}
+  table{width:100%;}
 </style></head><body>
-<div style="text-align:center;margin-bottom:28pt;">
-  <p style="background:#0ea5a0;color:white;display:inline-block;padding:4pt 14pt;border-radius:20pt;font-size:10pt;font-weight:bold;">Médecin+ | ${format?.icon} ${format?.label}</p>
-  <h1>${data.titre || ""}</h1>
-  <p style="color:#888;font-style:italic;font-size:13pt;">${data.sous_titre || ""}</p>
-  ${data.accroche ? `<p style="font-size:13pt;color:#555;font-style:italic;margin:16pt 0;">"${data.accroche}"</p>` : ""}
-  <p style="color:#aaa;font-size:10pt;">${new Date().toLocaleDateString("fr-FR", { year:"numeric", month:"long" })}</p>
-</div>
 
-<div style="page-break-after:always;">
-  <h2>Introduction</h2>
-  <div class="intro-box"><p>${(data.introduction || "").replace(/\n/g, "</p><p>")}</p></div>
-</div>
+<p style="text-align:center;background:#0ea5a0;color:white;padding:6pt;font-weight:bold;font-size:10pt;">Medecin+ | ${format?.label}</p>
+<h1>${data.titre || ""}</h1>
+<p style="text-align:center;color:#888;font-style:italic;font-size:13pt;">${data.sous_titre || ""}</p>
+${data.accroche ? `<p style="text-align:center;font-size:12pt;color:#555;font-style:italic;">"${data.accroche}"</p>` : ""}
+<p style="text-align:center;color:#aaa;font-size:10pt;">${new Date().toLocaleDateString("fr-FR", { year:"numeric", month:"long" })}</p>
+
+<br clear="all" style="page-break-before:always;" />
+<h2>Introduction</h2>
+<table width="100%" cellpadding="14" cellspacing="0" style="margin:14pt 0;border-collapse:collapse;">
+  <tr><td style="background:#f0fdfa;border-left:5px solid #0ea5a0;">
+    <p>${(data.introduction || "").replace(/\n/g, "</p><p>")}</p>
+  </td></tr>
+</table>
 
 ${bodyHTML}
 
-<div style="page-break-before:always;">
-  <div class="conclusion-box">
-    <h2 style="color:white;border:none;">Conclusion</h2>
+<br clear="all" style="page-break-before:always;" />
+<table width="100%" cellpadding="20" cellspacing="0" style="border-collapse:collapse;">
+  <tr><td style="background:#0ea5a0;color:white;">
+    <h2 style="color:white;margin:0 0 8pt;">Conclusion</h2>
     <p>${(data.conclusion || "").replace(/\n/g, "</p><p>")}</p>
-  </div>
-</div>
+  </td></tr>
+</table>
 
 ${planHTML}
 ${checklistHTML}
 ${imagesHTML}
 ${metaHTML}
 
-<p style="text-align:center;color:#aaa;font-size:9pt;margin-top:30pt;border-top:1px solid #eee;padding-top:10pt;">
-  Médecin+ — Draft à peaufiner avant publication
-</p>
+<p style="text-align:center;color:#aaa;font-size:9pt;margin-top:20pt;">Medecin+ — Draft a peaufiner avant publication</p>
 </body></html>`;
 }
 
