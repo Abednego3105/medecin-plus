@@ -2,32 +2,25 @@ import { useState, useEffect } from "react";
 import Head from "next/head";
 
 const PALETTE = {
-  bg: "#060d1a",
-  surface: "#0d1b2e",
-  card: "#111f35",
-  border: "#1e3050",
-  teal: "#0ea5a0",
-  tealDim: "rgba(14,165,160,0.12)",
-  gold: "#f5c842",
-  text: "#e2eaf5",
-  muted: "#6b8aaa",
-  subtle: "#2a3f5a",
+  bg: "#060d1a", surface: "#0d1b2e", card: "#111f35", border: "#1e3050",
+  teal: "#0ea5a0", tealDim: "rgba(14,165,160,0.12)", gold: "#f5c842",
+  text: "#e2eaf5", muted: "#6b8aaa", subtle: "#2a3f5a",
 };
 
 const FORMATS = [
-  { id: "ebook", icon: "📖", label: "Ebook", desc: "Guide complet structuré" },
+  { id: "ebook", icon: "📖", label: "Ebook Premium", desc: "Quiz + Workbook + Plan 30j" },
   { id: "guide", icon: "🗺️", label: "Guide Pratique", desc: "Étapes concrètes & conseils" },
   { id: "plan_alimentaire", icon: "🥗", label: "Plan Alimentaire", desc: "Menu & nutrition santé" },
   { id: "programme_sport", icon: "💪", label: "Programme Sport", desc: "Exercices & routines" },
   { id: "fiche_memo", icon: "📋", label: "Fiche Mémo", desc: "L'essentiel en 1 page" },
   { id: "quiz", icon: "🧠", label: "Quiz Santé", desc: "Questions & réponses éducatives" },
   { id: "atelier", icon: "🎓", label: "Atelier / Workbook", desc: "Exercices interactifs" },
-  { id: "programme_bien_etre", icon: "🌿", label: "Programme Bien-être", desc: "Routines & habitudes saines" },
+  { id: "programme_bien_etre", icon: "🌿", label: "Programme Bien-être", desc: "Routines & habitudes" },
 ];
 
 const LONGUEURS = [
-  { id: "court", label: "Court", pages: "10–30 pages", prix: "1 000–5 000 FCFA" },
-  { id: "complet", label: "Complet", pages: "40–80+ pages", prix: "5 000–20 000 FCFA" },
+  { id: "court", label: "Court", pages: "20–35 pages", prix: "5 000–8 000 FCFA" },
+  { id: "complet", label: "Complet", pages: "50–80+ pages", prix: "8 000–15 000 FCFA" },
 ];
 
 const EXEMPLES = [
@@ -45,57 +38,144 @@ const PLATEFORMES = [
 
 function generateWordHTML(data, formatId) {
   const format = FORMATS.find(f => f.id === formatId);
-  const { titre, sous_titre, accroche, introduction, sections, conclusion, checklist, emplacements_images, meta } = data;
+  const isEbook = formatId === "ebook";
 
-  let sectionsHTML = "";
-  sections?.forEach((s, i) => {
-    sectionsHTML += `
-<div style="page-break-inside:avoid;margin-bottom:28pt;">
-  <h2 style="font-size:15pt;color:#0ea5a0;border-bottom:2px solid #0ea5a0;padding-bottom:5pt;margin-top:22pt;">
-    ${s.titre || s.question || `Section ${i + 1}`}
+  let bodyHTML = "";
+
+  if (isEbook && data.chapitres) {
+    data.chapitres.forEach((ch, i) => {
+      bodyHTML += `
+<div style="page-break-before:${i > 0 ? "always" : "auto"};">
+  <h2 style="font-size:16pt;color:#0ea5a0;border-bottom:2px solid #0ea5a0;padding-bottom:6pt;margin-top:0;">
+    Chapitre ${ch.numero} — ${ch.titre}
   </h2>
-  ${s.contenu ? `<p>${s.contenu.replace(/\n/g, "</p><p>")}</p>` : ""}
-  ${s.reponse_courte ? `<p style="font-size:14pt;font-weight:bold;color:#0ea5a0;">→ ${s.reponse_courte}</p>` : ""}
-  ${s.explication ? `<p>${s.explication}</p>` : ""}
-  ${s.points_cles ? `<div style="background:#f0fdfa;padding:10pt;border-left:4px solid #0ea5a0;margin:10pt 0;">${s.points_cles.map(p => `<p style="margin:3pt 0;">✓ ${p}</p>`).join("")}</div>` : ""}
-  ${s.emplacement_image ? `<div style="border:2px dashed #0ea5a0;padding:14pt;text-align:center;margin:14pt 0;background:#f0fdfa;color:#0ea5a0;font-size:11pt;">🖼 ${s.emplacement_image}</div>` : ""}
+  <p>${(ch.contenu || "").replace(/\n/g, "</p><p>")}</p>
+
+  ${ch.points_cles?.length ? `
+  <div style="background:#f0fdfa;padding:12pt;border-left:4px solid #0ea5a0;margin:14pt 0;">
+    <p style="font-weight:bold;color:#0ea5a0;margin:0 0 8pt;">Points clés</p>
+    ${ch.points_cles.map(p => `<p style="margin:3pt 0;">✓ &nbsp;${p}</p>`).join("")}
+  </div>` : ""}
+
+  ${ch.emplacement_image ? `
+  <div style="border:2px dashed #0ea5a0;padding:14pt;text-align:center;margin:14pt 0;background:#f0fdfa;color:#0ea5a0;font-size:11pt;">
+    🖼 ${ch.emplacement_image}
+  </div>` : ""}
+
+  ${ch.quiz?.length ? `
+  <div style="background:#fffbeb;border:1px solid #f5c842;padding:14pt;margin:16pt 0;border-radius:6pt;">
+    <p style="font-weight:bold;color:#92400e;font-size:13pt;margin:0 0 12pt;">🧠 Quiz — Chapitre ${ch.numero}</p>
+    ${ch.quiz.map((q, qi) => `
+    <div style="margin-bottom:14pt;">
+      <p style="font-weight:bold;margin:0 0 6pt;">${qi + 1}. ${q.question}</p>
+      ${q.reponses.map(r => `
+      <p style="margin:3pt 0 3pt 12pt;">
+        <span style="display:inline-block;width:14pt;height:14pt;border:2px solid #888;margin-right:6pt;vertical-align:middle;"></span>${r}
+      </p>`).join("")}
+      <p style="font-size:10pt;color:#666;font-style:italic;margin:6pt 0 0 12pt;">✓ Bonne réponse : ${q.bonne_reponse} — ${q.explication}</p>
+    </div>`).join("")}
+  </div>` : ""}
+
+  ${ch.exercice_workbook ? `
+  <div style="background:#f0f4ff;border:1px solid #6366f1;padding:14pt;margin:16pt 0;border-radius:6pt;">
+    <p style="font-weight:bold;color:#4338ca;font-size:13pt;margin:0 0 8pt;">✍️ Workbook — ${ch.exercice_workbook.titre || "Exercice pratique"}</p>
+    <p style="color:#333;margin:0 0 10pt;">${ch.exercice_workbook.consigne}</p>
+    ${(ch.exercice_workbook.questions || []).map(q => `
+    <div style="margin-bottom:12pt;">
+      <p style="font-weight:bold;margin:0 0 6pt;">${q}</p>
+      <div style="border-bottom:1px solid #ccc;margin-bottom:4pt;height:20pt;"></div>
+      <div style="border-bottom:1px solid #ccc;margin-bottom:4pt;height:20pt;"></div>
+      <div style="border-bottom:1px solid #ccc;height:20pt;"></div>
+    </div>`).join("")}
+  </div>` : ""}
 </div>`;
-  });
+    });
+  } else if (data.sections) {
+    data.sections.forEach((s, i) => {
+      bodyHTML += `
+<div style="page-break-before:${i > 0 ? "always" : "auto"};">
+  <h2 style="font-size:15pt;color:#0ea5a0;border-bottom:2px solid #0ea5a0;padding-bottom:5pt;">${s.titre || s.question || `Section ${i + 1}`}</h2>
+  ${s.contenu ? `<p>${s.contenu.replace(/\n/g, "</p><p>")}</p>` : ""}
+  ${s.reponse_courte ? `<p style="font-size:14pt;font-weight:bold;color:#0ea5a0;">→ ${s.reponse_courte}</p><p>${s.explication || ""}</p>` : ""}
+  ${s.points_cles?.length ? `<div style="background:#f0fdfa;padding:10pt;border-left:4px solid #0ea5a0;margin:10pt 0;">${s.points_cles.map(p => `<p style="margin:3pt 0;">✓ ${p}</p>`).join("")}</div>` : ""}
+  ${s.emplacement_image ? `<div style="border:2px dashed #0ea5a0;padding:12pt;text-align:center;margin:12pt 0;background:#f0fdfa;color:#0ea5a0;font-size:11pt;">🖼 ${s.emplacement_image}</div>` : ""}
+</div>`;
+    });
+  }
+
+  const planHTML = data.plan_action?.length ? `
+<div style="page-break-before:always;">
+  <h2 style="font-size:16pt;color:#0ea5a0;">📅 Plan d'action — 30 jours</h2>
+  ${data.plan_action.map(s => `
+  <div style="background:#f8f9fa;border-left:4px solid #0ea5a0;padding:12pt;margin:10pt 0;">
+    <p style="font-weight:bold;color:#0ea5a0;margin:0 0 6pt;">Semaine ${s.semaine} — ${s.objectif}</p>
+    ${(s.actions || []).map(a => `<p style="margin:3pt 0;">□ &nbsp;${a}</p>`).join("")}
+  </div>`).join("")}
+</div>` : "";
+
+  const checklistHTML = data.checklist?.length ? `
+<div style="page-break-before:always;">
+  <h2 style="font-size:16pt;color:#0ea5a0;">✅ Checklist d'actions</h2>
+  ${data.checklist.map(item => `<p style="margin:8pt 0;">
+    <span style="display:inline-block;width:14pt;height:14pt;border:2px solid #0ea5a0;margin-right:8pt;vertical-align:middle;"></span>${item}
+  </p>`).join("")}
+</div>` : "";
+
+  const imagesHTML = data.emplacements_images?.length ? `
+<div style="page-break-before:always;">
+  <h2 style="font-size:14pt;color:#f5c842;">🖼 Images à générer sur ChatGPT</h2>
+  ${data.emplacements_images.map(img => `<div style="border:2px dashed #f5c842;padding:12pt;text-align:center;margin:10pt 0;background:#fffbeb;color:#92400e;">${img}</div>`).join("")}
+</div>` : "";
+
+  const metaHTML = data.meta ? `
+<div style="page-break-before:always;background:#f8f9fa;border:1px solid #ddd;padding:16pt;font-size:10pt;">
+  <p style="font-weight:bold;font-size:12pt;">FICHE COMMERCIALE — Ne pas publier</p><br>
+  <p><strong>Prix :</strong> ${data.meta.prix_suggere_fcfa?.toLocaleString()} FCFA / ${data.meta.prix_suggere_eur}€</p>
+  <p><strong>Public cible :</strong> ${data.meta.public_cible}</p>
+  <p><strong>Titre SEO :</strong> ${data.meta.titre_seo}</p>
+  <p><strong>Tags :</strong> ${data.meta.tags?.join(", ")}</p><br>
+  <p><strong>Description vente :</strong><br>${data.meta.description_vente}</p>
+</div>` : "";
 
   return `<html><head><meta charset="UTF-8">
 <style>
   body{font-family:Georgia,serif;font-size:12pt;color:#1a1a2e;line-height:1.8;margin:2.5cm;}
-  h1{font-size:24pt;color:#0ea5a0;text-align:center;}
-  h2{font-size:14pt;color:#0ea5a0;}
+  h1{font-size:26pt;color:#0ea5a0;text-align:center;}
+  h2{font-size:15pt;color:#0ea5a0;}
+  p{margin:6pt 0;}
   .intro-box{background:#f0fdfa;padding:18pt;border-left:5px solid #0ea5a0;margin:18pt 0;}
   .conclusion-box{background:#0ea5a0;color:white;padding:22pt;margin:22pt 0;}
-  .page-break{page-break-after:always;}
-  .meta-box{background:#f8f9fa;border:1px solid #ddd;padding:14pt;margin-top:28pt;font-size:10pt;}
 </style></head><body>
 <div style="text-align:center;margin-bottom:28pt;">
-  <p style="background:#0ea5a0;color:white;display:inline-block;padding:4pt 12pt;border-radius:20pt;font-size:10pt;font-weight:bold;">Médecin+ | ${format?.icon} ${format?.label}</p>
-  <h1>${titre}</h1>
-  <p style="color:#888;font-style:italic;">${sous_titre}</p>
-  <p style="color:#aaa;font-size:10pt;">${new Date().toLocaleDateString("fr-FR", { year: "numeric", month: "long" })}</p>
+  <p style="background:#0ea5a0;color:white;display:inline-block;padding:4pt 14pt;border-radius:20pt;font-size:10pt;font-weight:bold;">Médecin+ | ${format?.icon} ${format?.label}</p>
+  <h1>${data.titre || ""}</h1>
+  <p style="color:#888;font-style:italic;font-size:13pt;">${data.sous_titre || ""}</p>
+  ${data.accroche ? `<p style="font-size:13pt;color:#555;font-style:italic;margin:16pt 0;">"${data.accroche}"</p>` : ""}
+  <p style="color:#aaa;font-size:10pt;">${new Date().toLocaleDateString("fr-FR", { year:"numeric", month:"long" })}</p>
 </div>
-${accroche ? `<p style="font-size:13pt;text-align:center;color:#555;font-style:italic;margin:14pt 0;">"${accroche}"</p>` : ""}
-<div class="page-break"></div>
-<h2>Introduction</h2>
-<div class="intro-box"><p>${introduction?.replace(/\n/g, "</p><p>") || ""}</p></div>
-<div class="page-break"></div>
-${sectionsHTML}
-<div class="conclusion-box"><h2 style="color:white;border:none;">Conclusion</h2><p>${conclusion?.replace(/\n/g, "</p><p>") || ""}</p></div>
-<div class="page-break"></div>
-<h2>✅ Votre checklist d'actions</h2>
-${checklist?.map(item => `<p>□ &nbsp;${item}</p>`).join("") || ""}
-${emplacements_images?.length ? `<div class="page-break"></div><h2>🖼 Images à générer sur ChatGPT</h2>${emplacements_images.map(img => `<div style="border:2px dashed #0ea5a0;padding:12pt;text-align:center;margin:12pt 0;background:#f0fdfa;color:#0ea5a0;">${img}</div>`).join("")}` : ""}
-${meta ? `<div class="meta-box"><strong>FICHE COMMERCIALE</strong><br><br>
-Prix : ${meta.prix_suggere_fcfa?.toLocaleString()} FCFA / ${meta.prix_suggere_eur}€<br>
-Public : ${meta.public_cible}<br>
-SEO : ${meta.titre_seo}<br>
-Tags : ${meta.tags?.join(", ")}<br><br>
-<strong>Description vente :</strong><br>${meta.description_vente}</div>` : ""}
-<p style="text-align:center;color:#aaa;font-size:9pt;margin-top:28pt;">Médecin+ — Draft à peaufiner avant publication</p>
+
+<div style="page-break-after:always;">
+  <h2>Introduction</h2>
+  <div class="intro-box"><p>${(data.introduction || "").replace(/\n/g, "</p><p>")}</p></div>
+</div>
+
+${bodyHTML}
+
+<div style="page-break-before:always;">
+  <div class="conclusion-box">
+    <h2 style="color:white;border:none;">Conclusion</h2>
+    <p>${(data.conclusion || "").replace(/\n/g, "</p><p>")}</p>
+  </div>
+</div>
+
+${planHTML}
+${checklistHTML}
+${imagesHTML}
+${metaHTML}
+
+<p style="text-align:center;color:#aaa;font-size:9pt;margin-top:30pt;border-top:1px solid #eee;padding-top:10pt;">
+  Médecin+ — Draft à peaufiner avant publication
+</p>
 </body></html>`;
 }
 
@@ -114,7 +194,7 @@ export default function MedecinPlus() {
 
   useEffect(() => {
     try {
-      const saved = localStorage.getItem("mp_v2_library");
+      const saved = localStorage.getItem("mp_v3_library");
       if (saved) setBibliotheque(JSON.parse(saved));
     } catch {}
   }, []);
@@ -122,7 +202,7 @@ export default function MedecinPlus() {
   const saveToLibrary = (item) => {
     const updated = [item, ...bibliotheque].slice(0, 100);
     setBibliotheque(updated);
-    try { localStorage.setItem("mp_v2_library", JSON.stringify(updated)); } catch {}
+    try { localStorage.setItem("mp_v3_library", JSON.stringify(updated)); } catch {}
   };
 
   const generate = async () => {
@@ -131,12 +211,16 @@ export default function MedecinPlus() {
     setProgress(5);
     setError(null);
 
-    const labels = ["Initialisation...", "Connexion à l'IA...", "Génération du contenu...", "Structuration des sections...", "Métadonnées commerciales...", "Finalisation..."];
-    const progValues = [15, 30, 50, 70, 85, 92];
+    const isEbook = formatId === "ebook";
+    const labels = isEbook
+      ? ["Initialisation...", "Génération des chapitres...", "Création du quiz...", "Génération du workbook...", "Plan d'action 30 jours...", "Métadonnées commerciales...", "Finalisation..."]
+      : ["Initialisation...", "Connexion à l'IA...", "Génération du contenu...", "Structuration...", "Finalisation..."];
+    const progValues = isEbook ? [10, 25, 40, 55, 70, 85, 95] : [10, 30, 55, 75, 90];
+
     let si = 0;
     const interval = setInterval(() => {
       if (si < labels.length) { setProgress(progValues[si]); setProgressLabel(labels[si]); si++; }
-    }, 900);
+    }, isEbook ? 1200 : 900);
 
     try {
       const res = await fetch("/api/generate", {
@@ -146,18 +230,26 @@ export default function MedecinPlus() {
       });
 
       clearInterval(interval);
-      setProgress(95);
-      setProgressLabel("Traitement...");
+      setProgress(97);
+      setProgressLabel("Traitement final...");
 
       const data = await res.json();
       if (data.error) throw new Error(data.error);
 
-      const item = { id: Date.now(), sujet, formatId, longueur, titre: data.titre, sous_titre: data.sous_titre, data, date: new Date().toLocaleDateString("fr-FR") };
+      const item = {
+        id: Date.now(),
+        sujet, formatId, longueur,
+        titre: data.titre,
+        sous_titre: data.sous_titre,
+        data,
+        date: new Date().toLocaleDateString("fr-FR"),
+      };
+
       saveToLibrary(item);
       setResult(item);
       setProgress(100);
-      setProgressLabel("✓ Draft généré !");
-      setTimeout(() => setStep("result"), 400);
+      setProgressLabel("✓ Prêt !");
+      setTimeout(() => setStep("result"), 300);
     } catch (err) {
       clearInterval(interval);
       setError("Erreur : " + err.message);
@@ -173,10 +265,10 @@ export default function MedecinPlus() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `${item.titre?.replace(/[^\w\s]/g, "").trim().replace(/\s+/g, "_") || "produit"}_MedecinPlus.doc`;
+      a.download = `${(item.titre || "produit").replace(/[^\w\s]/g, "").trim().replace(/\s+/g, "_")}_MedecinPlus.doc`;
       a.click();
       URL.revokeObjectURL(url);
-    } catch {}
+    } catch(e) { alert("Erreur téléchargement"); }
     setDownloading(false);
   };
 
@@ -184,39 +276,28 @@ export default function MedecinPlus() {
 
   const fmt = FORMATS.find(f => f.id === formatId);
   const lng = LONGUEURS.find(l => l.id === longueur);
-
   const card = { background: PALETTE.card, border: `1px solid ${PALETTE.border}`, borderRadius: "14px", padding: "20px", marginBottom: "16px" };
 
   return (
     <>
       <Head>
         <title>Médecin+ | Usine de Produits Digitaux Santé</title>
-        <meta name="description" content="Générez des ebooks, guides et programmes santé de haute qualité avec l'IA" />
+        <meta name="description" content="Générez des ebooks, guides et programmes santé de haute qualité" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
       </Head>
 
       <div style={{ minHeight: "100vh", background: PALETTE.bg, fontFamily: "'Inter', sans-serif", padding: "20px 16px" }}>
-        <style>{`
-          * { box-sizing: border-box; margin: 0; padding: 0; }
-          input::placeholder { color: ${PALETTE.subtle}; }
-          input:focus { outline: none; border-color: ${PALETTE.teal} !important; }
-          @keyframes spin { to { transform: rotate(360deg); } }
-          @keyframes fadeIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
-          @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
-          button:hover { opacity: 0.9; }
-        `}</style>
+        <style>{`* { box-sizing: border-box; margin: 0; padding: 0; } input::placeholder { color: ${PALETTE.subtle}; } input:focus { outline: none; border-color: ${PALETTE.teal} !important; } @keyframes spin { to { transform: rotate(360deg); } } @keyframes fadeIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } } @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} } button:hover { opacity:0.88; }`}</style>
 
         {/* HEADER */}
         <div style={{ textAlign: "center", marginBottom: "28px", animation: "fadeIn 0.5s ease" }}>
           <div style={{ display: "inline-flex", alignItems: "center", gap: "8px", background: PALETTE.tealDim, border: `1px solid ${PALETTE.teal}40`, borderRadius: "24px", padding: "6px 16px", marginBottom: "12px" }}>
             <span style={{ color: PALETTE.teal, fontSize: "11px", fontWeight: "700", letterSpacing: "2px", textTransform: "uppercase" }}>Médecin+</span>
-            <span style={{ background: PALETTE.gold, color: "#000", fontSize: "9px", fontWeight: "800", padding: "2px 6px", borderRadius: "8px" }}>V2</span>
+            <span style={{ background: PALETTE.gold, color: "#000", fontSize: "9px", fontWeight: "800", padding: "2px 6px", borderRadius: "8px" }}>V3</span>
           </div>
-          <h1 style={{ fontFamily: "'Playfair Display', serif", color: PALETTE.text, fontSize: "clamp(22px, 5vw, 32px)", fontWeight: "800", margin: "0 0 6px", lineHeight: 1.2 }}>
-            Usine de Produits Digitaux Santé
-          </h1>
-          <p style={{ color: PALETTE.muted, fontSize: "13px" }}>Draft haute qualité · Prêt à peaufiner · Multi-plateformes</p>
+          <h1 style={{ fontFamily: "'Playfair Display', serif", color: PALETTE.text, fontSize: "clamp(22px, 5vw, 32px)", fontWeight: "800", margin: "0 0 6px" }}>Usine de Produits Digitaux Santé</h1>
+          <p style={{ color: PALETTE.muted, fontSize: "13px" }}>Ebook Premium · Quiz · Workbook · Plan 30j · Multi-plateformes</p>
         </div>
 
         {/* TABS */}
@@ -226,7 +307,6 @@ export default function MedecinPlus() {
           ))}
         </div>
 
-        {/* CREATE TAB */}
         {tab === "creer" && (
           <div style={{ maxWidth: "640px", margin: "0 auto" }}>
 
@@ -234,18 +314,16 @@ export default function MedecinPlus() {
               <div style={{ animation: "fadeIn 0.4s ease" }}>
                 {error && <div style={{ background: "#2d0a0a", border: "1px solid #dc2626", color: "#fca5a5", padding: "12px 16px", borderRadius: "10px", marginBottom: "16px", fontSize: "13px" }}>⚠ {error}</div>}
 
-                {/* Sujet */}
                 <div style={card}>
                   <label style={{ color: PALETTE.muted, fontSize: "11px", fontWeight: "600", letterSpacing: "1.5px", textTransform: "uppercase", display: "block", marginBottom: "10px" }}>Sujet du produit</label>
                   <input value={sujet} onChange={e => setSujet(e.target.value)} onKeyDown={e => e.key === "Enter" && generate()} placeholder="Ex: L'hypertension artérielle, Le diabète..." style={{ width: "100%", padding: "13px 15px", background: PALETTE.surface, border: `2px solid ${sujet ? PALETTE.teal : PALETTE.border}`, borderRadius: "10px", color: PALETTE.text, fontSize: "14px", transition: "border-color 0.2s" }} />
                   <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginTop: "12px" }}>
                     {EXEMPLES.map(ex => (
-                      <button key={ex} onClick={() => setSujet(ex)} style={{ background: sujet === ex ? PALETTE.tealDim : "rgba(255,255,255,0.03)", color: sujet === ex ? PALETTE.teal : PALETTE.muted, border: `1px solid ${sujet === ex ? PALETTE.teal + "60" : PALETTE.border}`, padding: "4px 10px", borderRadius: "16px", fontSize: "11px", cursor: "pointer", transition: "all 0.15s" }}>{ex}</button>
+                      <button key={ex} onClick={() => setSujet(ex)} style={{ background: sujet === ex ? PALETTE.tealDim : "rgba(255,255,255,0.03)", color: sujet === ex ? PALETTE.teal : PALETTE.muted, border: `1px solid ${sujet === ex ? PALETTE.teal + "60" : PALETTE.border}`, padding: "4px 10px", borderRadius: "16px", fontSize: "11px", cursor: "pointer" }}>{ex}</button>
                     ))}
                   </div>
                 </div>
 
-                {/* Format */}
                 <div style={card}>
                   <label style={{ color: PALETTE.muted, fontSize: "11px", fontWeight: "600", letterSpacing: "1.5px", textTransform: "uppercase", display: "block", marginBottom: "12px" }}>Type de produit</label>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
@@ -259,7 +337,6 @@ export default function MedecinPlus() {
                   </div>
                 </div>
 
-                {/* Longueur */}
                 <div style={card}>
                   <label style={{ color: PALETTE.muted, fontSize: "11px", fontWeight: "600", letterSpacing: "1.5px", textTransform: "uppercase", display: "block", marginBottom: "12px" }}>Longueur</label>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
@@ -294,37 +371,39 @@ export default function MedecinPlus() {
                 <h2 style={{ fontFamily: "'Playfair Display', serif", color: PALETTE.text, fontSize: "20px", marginBottom: "8px" }}>Génération en cours...</h2>
                 <p style={{ color: PALETTE.muted, fontSize: "13px", marginBottom: "28px", animation: "pulse 1.5s ease infinite" }}>{progressLabel}</p>
                 <div style={{ background: PALETTE.surface, borderRadius: "20px", height: "5px", overflow: "hidden", maxWidth: "320px", margin: "0 auto 8px" }}>
-                  <div style={{ height: "100%", background: `linear-gradient(90deg, ${PALETTE.teal}, #14b8b2)`, borderRadius: "20px", width: `${progress}%`, transition: "width 0.6s ease" }} />
+                  <div style={{ height: "100%", background: `linear-gradient(90deg, ${PALETTE.teal}, #14b8b2)`, borderRadius: "20px", width: `${progress}%`, transition: "width 0.8s ease" }} />
                 </div>
                 <p style={{ color: PALETTE.subtle, fontSize: "11px" }}>{progress}%</p>
+                {formatId === "ebook" && <p style={{ color: PALETTE.subtle, fontSize: "11px", marginTop: "12px" }}>Ebook Premium · Quiz + Workbook + Plan 30j</p>}
               </div>
             )}
 
             {step === "result" && result && (
               <div style={{ animation: "fadeIn 0.4s ease" }}>
-                <div style={{ ...card, border: `1px solid ${PALETTE.teal}50`, background: PALETTE.tealDim }}>
+                <div style={{ ...card, border: `1px solid ${PALETTE.teal}50`, background: PALETTE.tealDim, marginBottom: "16px" }}>
                   <div style={{ display: "flex", gap: "12px", alignItems: "flex-start", marginBottom: "14px" }}>
-                    <div style={{ width: "34px", height: "34px", background: PALETTE.teal, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "15px", flexShrink: 0 }}>✓</div>
+                    <div style={{ width: "34px", height: "34px", background: PALETTE.teal, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "16px", flexShrink: 0 }}>✓</div>
                     <div>
                       <p style={{ color: PALETTE.teal, fontWeight: "700", fontSize: "13px", marginBottom: "2px" }}>Draft généré avec succès</p>
-                      <p style={{ color: PALETTE.muted, fontSize: "11px" }}>{fmt?.icon} {fmt?.label} · {lng?.label} · {result.data.sections?.length} sections</p>
+                      <p style={{ color: PALETTE.muted, fontSize: "11px" }}>{fmt?.icon} {fmt?.label} · {lng?.label} · {(result.data.chapitres || result.data.sections)?.length} sections</p>
                     </div>
                   </div>
                   <h2 style={{ fontFamily: "'Playfair Display', serif", color: PALETTE.text, fontSize: "18px", marginBottom: "4px" }}>{result.titre}</h2>
                   <p style={{ color: PALETTE.muted, fontSize: "13px", fontStyle: "italic", marginBottom: "14px" }}>{result.sous_titre}</p>
                   {result.data.accroche && <div style={{ background: PALETTE.surface, borderLeft: `3px solid ${PALETTE.gold}`, padding: "10px 14px", borderRadius: "0 8px 8px 0", marginBottom: "14px" }}><p style={{ color: PALETTE.text, fontSize: "13px", fontStyle: "italic" }}>"{result.data.accroche}"</p></div>}
-                  <div style={{ display: "flex", flexDirection: "column", gap: "5px", marginBottom: "14px" }}>
-                    {result.data.sections?.map((s, i) => (
-                      <div key={i} style={{ display: "flex", gap: "10px", alignItems: "center", background: "rgba(255,255,255,0.03)", borderRadius: "8px", padding: "7px 12px" }}>
-                        <span style={{ background: PALETTE.teal, color: "white", borderRadius: "50%", width: "20px", height: "20px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "10px", fontWeight: "700", flexShrink: 0 }}>{i + 1}</span>
-                        <span style={{ color: "#9db5cc", fontSize: "12px" }}>{s.titre || s.question || `Section ${i + 1}`}</span>
-                      </div>
-                    ))}
-                  </div>
+
+                  {result.formatId === "ebook" && (
+                    <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "12px" }}>
+                      {[`📖 ${(result.data.chapitres || []).length} chapitres`, "🧠 Quiz intégré", "✍️ Workbook", "📅 Plan 30j"].map(tag => (
+                        <span key={tag} style={{ background: "rgba(14,165,160,0.15)", color: PALETTE.teal, fontSize: "11px", padding: "3px 10px", borderRadius: "12px", fontWeight: "600" }}>{tag}</span>
+                      ))}
+                    </div>
+                  )}
+
                   {result.data.meta && (
                     <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
                       {PLATEFORMES.map(p => (
-                        <div key={p.id} style={{ background: p.color + "20", border: `1px solid ${p.color}40`, borderRadius: "8px", padding: "5px 10px" }}>
+                        <div key={p.id} style={{ background: p.color + "20", border: `1px solid ${p.color}40`, borderRadius: "8px", padding: "4px 10px" }}>
                           <span style={{ color: p.color, fontSize: "11px", fontWeight: "700" }}>{p.label}</span>
                           <span style={{ color: PALETTE.muted, fontSize: "11px" }}> · {result.data.meta.prix_suggere_fcfa?.toLocaleString()} FCFA</span>
                         </div>
@@ -337,45 +416,21 @@ export default function MedecinPlus() {
                   {downloading ? "⏳ Téléchargement..." : "⬇ Télécharger Word — Draft complet"}
                 </button>
                 <button onClick={reset} style={{ width: "100%", padding: "12px", background: "transparent", color: PALETTE.muted, border: `1px solid ${PALETTE.border}`, borderRadius: "12px", fontSize: "13px", cursor: "pointer" }}>+ Nouveau produit</button>
-
-                {result.data.checklist && (
-                  <div style={{ ...card, marginTop: "16px" }}>
-                    <p style={{ color: PALETTE.muted, fontSize: "11px", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "10px" }}>Checklist incluse</p>
-                    {result.data.checklist.map((item, i) => (
-                      <div key={i} style={{ display: "flex", gap: "8px", marginBottom: "6px" }}>
-                        <span style={{ color: PALETTE.teal, flexShrink: 0 }}>□</span>
-                        <span style={{ color: "#9db5cc", fontSize: "12px" }}>{item}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {result.data.emplacements_images?.length > 0 && (
-                  <div style={{ ...card, border: `1px solid ${PALETTE.gold}30` }}>
-                    <p style={{ color: PALETTE.gold, fontSize: "11px", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "10px" }}>🖼 Images à générer sur ChatGPT</p>
-                    {result.data.emplacements_images.map((img, i) => (
-                      <div key={i} style={{ background: PALETTE.surface, borderRadius: "8px", padding: "8px 12px", marginBottom: "6px" }}>
-                        <span style={{ color: PALETTE.muted, fontSize: "12px" }}>{img}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
               </div>
             )}
           </div>
         )}
 
-        {/* LIBRARY TAB */}
         {tab === "bibliotheque" && (
           <div style={{ maxWidth: "640px", margin: "0 auto" }}>
             {bibliotheque.length === 0 ? (
               <div style={{ textAlign: "center", padding: "60px 20px" }}>
                 <p style={{ fontSize: "32px", marginBottom: "12px" }}>📚</p>
-                <p style={{ color: PALETTE.muted, fontSize: "14px" }}>Aucun produit généré.<br />Commencez par créer votre premier draft.</p>
+                <p style={{ color: PALETTE.muted, fontSize: "14px" }}>Aucun produit généré. Commencez par créer votre premier draft.</p>
               </div>
             ) : (
               <div>
-                <p style={{ color: PALETTE.muted, fontSize: "12px", marginBottom: "16px" }}>{bibliotheque.length} produit{bibliotheque.length > 1 ? "s" : ""} généré{bibliotheque.length > 1 ? "s" : ""}</p>
+                <p style={{ color: PALETTE.muted, fontSize: "12px", marginBottom: "16px" }}>{bibliotheque.length} produit{bibliotheque.length > 1 ? "s" : ""}</p>
                 {bibliotheque.map(item => {
                   const f = FORMATS.find(f => f.id === item.formatId);
                   const l = LONGUEURS.find(l => l.id === item.longueur);
